@@ -1,6 +1,5 @@
 import colorama
 import sys
-import const
 
 def progress_bar(completed, total, content, length=20):
     progress = int(completed / total * length)

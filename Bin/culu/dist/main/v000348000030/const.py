@@ -1,20 +1,29 @@
-import os
-import shutil
-import subprocess
-import requests
-import json
 import colorama
-from time import sleep
 import sys
+import const
+import requests
+import os
+import webbrowser
+import shutil
+from time import sleep
+import random
+import wmi
 import re
-
+import subprocess
 
 colorama.init(autoreset=True)
+
+f = wmi.WMI()
+
+flag = 0
+
+print(f"{colorama.Fore.GREEN}Prepping...")
 
 # clear
 def clear():
     os.system('cls')
 
+# sets the title
 def set_title(newTitle):
     os.system(f'title CuluMod ^| {newTitle}')
 
@@ -23,19 +32,21 @@ def remove_ansi_escape_sequences(text):
     ansi_escape = re.compile(r'\x1b\[([0-9;]*)m') # i had to look on the internet on how to do this part btw.
     return ansi_escape.sub('', text)
 
+
+# gets the version from the github
 def get_version(cv):
     url = "https://raw.githubusercontent.com/Strap-Bo/CuluMod/main/Version.txt"
     response = requests.get(url)
 
     if response.status_code == 200:
         data = response.text.strip()
-        if data == cv:
-            print(f"{colorama.Fore.GREEN}Culu5 is up to date! {data}")
+        if cv == data:
+            print(f"{colorama.Fore.GREEN}Running Culu5 {data}")
         else:
-            print(f"{colorama.Fore.RED}Culu5 is not up to date! Go to the github to download the latest version. {cv} -> {data}")
+            print(f"{colorama.Fore.RED}Culu5 is not up to date! Going to the github to download the latest version. {data} -> {cv}")
+            webbrowser.WindowsDefault('https://github.com/Strap-Bo/CuluMod/archive/refs/heads/main.zip')
     else:
         print(f"{colorama.Fore.RED}ERROR: Failed to retrieve the file. Status code: {response.status_code}")
-
 
 # logs it to LogOutput.txt 
 def log_output(message):
@@ -53,9 +64,6 @@ def open_file(filename):
     except Exception as e:
         print(f"{colorama.Fore.RED} ERROR: Directory {filename} does not exist.")
 
-set_title("Prepping...")
-log_output(f"{colorama.Fore.CYAN}Preparing to install files...")
-
 # silly animation
 def ascii_animation(time, content):
     frames = ["|", "/", "-", "\\"]
@@ -64,6 +72,19 @@ def ascii_animation(time, content):
             sys.stdout.write(f"\r{colorama.Fore.BLUE}{content} {frame}")
             sys.stdout.flush()
             sleep(0.1)
+
+def get_process():
+    try:
+        for process in f.Win32_Process():
+            if "Gorilla Tag.exe" == process.name():
+                log_output(f"{colorama.Fore.YELLOW}Gorilla tag is open... Closing gorilla tag")
+                process.Terminate()
+                flag = 1
+                break
+        if flag == 0:
+            log_output(f"{colorama.Fore.GREEN}Gorilla tag is not open... Successfully running getGorilla()")
+    except Exception as e:
+        log_output(f"{colorama.Fore.RED}ERROR func,get_process() was left with a error: {e}")
             
 
 # list files in directory function
@@ -88,6 +109,9 @@ def list_files_in_directory(directory):
     except Exception as e:
         log_output(f"{colorama.Fore.RED}Failed to list files in {directory}: {e}")
 
+set_title("Prepping...")
+
+
 # copy assets function
 def copy_assets_to_oculus(assets_path, oculus_path, new_folder_name="Assets"):
 
@@ -106,12 +130,16 @@ def copy_assets_to_oculus(assets_path, oculus_path, new_folder_name="Assets"):
     for root, dirs, files in os.walk(assets_path):
         for file in files:
             source_file = os.path.join(root, file)
+
             relative_path = os.path.relpath(source_file, assets_path)
+
             destination_file = os.path.join(destination_assets_path, relative_path)
+            
             files_to_copy.append((source_file, destination_file))
 
-    total_files = len(files_to_copy)
-    num_file = 0
+    total_files = len(files_to_copy) # gets the amount not installed
+    num_file = 0 # gets the amount installed
+
     if total_files == 0:
         log_output(f"{colorama.Fore.YELLOW}No files found in {assets_path} to install.")
         return
@@ -121,39 +149,52 @@ def copy_assets_to_oculus(assets_path, oculus_path, new_folder_name="Assets"):
         
         shutil.copy2(source_file, destination_file)
         file_name = os.path.basename(source_file)
+
         clear()
+
         num_file+=1
+        randomn = random.randint(1, 5)
+
         bar = progress_bar(index, total_files, f"Installing: {colorama.Fore.GREEN}{file_name}")
-        ascii_animation(1, f"Installing {num_file}/{total_files}")
+        ascii_animation(randomn, f"Installing {num_file}/{total_files}")
         set_title(f"Installed {num_file}/{total_files}")
 
     log_output(f"\n{colorama.Fore.GREEN}All files from '{assets_path}' have been successfully installed into '{destination_assets_path}'!")
 
 # the main function
 def getGorilla():
+    try:
     # paths
-    login = os.getlogin()
-    assets_path = f"C:/Users/{login}/Downloads/culuMod/Assets/Culu5"
-    oculus_path = "C:/Program Files/Oculus/Software/Software/another-axiom-gorilla-tag"
-    bepinx_path = "C:/Program Files/Oculus/Software/Software/another-axiom-gorilla-tag/BepInEx"
-    culumod_path = "C:/Program Files/Oculus/Software/Software/another-axiom-gorilla-tag/CuluMod"
+        login = os.getlogin()
+        assets_path = f"C:/Users/{login}/Downloads/culuMod/Assets/Culu5"
+        oculus_path = "C:/Program Files/Oculus/Software/Software/another-axiom-gorilla-tag"
+        bepinx_path = "C:/Program Files/Oculus/Software/Software/another-axiom-gorilla-tag/BepInEx"
+        culumod_path = "C:/Program Files/Oculus/Software/Software/another-axiom-gorilla-tag/CuluMod"
 
 
-    list_files_in_directory(bepinx_path)
-    if os.path.exists(oculus_path):    
-        if os.path.exists(bepinx_path):
-            log_output(f"\n{colorama.Fore.RED}BepInEx folder already exists. Exiting...")
-            sleep(5)
-            os.system('exit')
+        list_files_in_directory(bepinx_path)
+
+        if os.path.exists(oculus_path):    
+            if os.path.exists(bepinx_path):
+                log_output(f"\n{colorama.Fore.RED}BepInEx folder already exists. Exiting...")
+                sleep(5)
+                os.system('exit')
 
         if os.path.exists(culumod_path):
-            log_output(f"\n{colorama.Fore.RED}CuluMod folder already exist! You don't need to do this unless there is a update.")
+            log_output(f"\n{colorama.Fore.YELLOW}CuluMod folder already exist! You don't need to do this unless there is a update.")
 
-    get_version(cv="V0.0.1")
-    ascii_animation(10, "Loading")
-    copy_assets_to_oculus(assets_path, oculus_path, new_folder_name="CuluMod")
-    open_file("C:\\Program Files\\Oculus\\Software\\Software\\another-axiom-gorilla-tag")
-    os.system('pause >nul Press any key to exit...')
+        get_version(cv="V0.1.2")
+        get_process()
+        ascii_animation(10, "Loading")
+        copy_assets_to_oculus(assets_path, oculus_path, new_folder_name="CuluMod")
+        open_file("C:\\Program Files\\Oculus\\Software\\Software\\another-axiom-gorilla-tag")
+        set_title("Installed Assets!")
+        os.system('pause Press any key to exit.')
+
+    except Exception as e:
+        print(f"{colorama.Fore.RED}FATAL ERROR: func,getGorilla() --exit")
+        os.system('pause')
+        os.system('exit')
 
 if __name__ == "__main__":
     getGorilla()
