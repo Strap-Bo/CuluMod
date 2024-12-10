@@ -40,10 +40,10 @@ def get_version(cv):
 
     if response.status_code == 200:
         data = response.text.strip()
-        if cv == data:
-            print(f"{colorama.Fore.GREEN}Running Culu5 {data}")
+        if data == cv:
+            print(f"{colorama.Fore.GREEN}Running Culu5 {cv}")
         else:
-            print(f"{colorama.Fore.RED}Culu5 is not up to date! Going to the github to download the latest version. {data} -> {cv}")
+            print(f"{colorama.Fore.RED}Culu5 is not up to date! Going to the github to download the latest version. {cv} -> {data}")
             webbrowser.WindowsDefault('https://github.com/Strap-Bo/CuluMod/archive/refs/heads/main.zip')
     else:
         print(f"{colorama.Fore.RED}ERROR: Failed to retrieve the file. Status code: {response.status_code}")
